@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spend Predictor, ITENT21</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 640px; margin: 40px auto; padding: 24px; color: #222; }
+  h1 { margin: 0 0 6px; }
+  .members { color: #666; font-size: 14px; margin: 0 0 24px; letter-spacing: 0.3px; }
+  button { padding: 12px 18px; margin: 6px 6px 6px 0; font-size: 16px; border: 1px solid #222; background: #fff; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #222; color: #fff; }
+  .daterow { margin: 20px 0; position: relative; }
+  .daterow label { font-size: 14px; color: #555; display: block; margin-bottom: 6px; }
+  .flatpickr-calendar { z-index: 99999 !important; }
+  .flatpickr-calendar.static { width: 100%; max-width: 320px; }
+  input[type=text].fp { width: 100%; padding: 12px 14px; font-size: 15px; border: 1px solid #bbb; border-radius: 8px; box-sizing: border-box; font-family: inherit; background: #fff; cursor: pointer; }
+  #dayCount { color: #666; font-size: 13px; margin-top: 6px; }
+  #out { margin-top: 24px; padding: 18px; background: #f6f6f6; border-radius: 10px; min-height: 40px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; }
+  .row .label { width: 90px; }
+  .row .amt { width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { height: 22px; border-radius: 4px; flex: 1; background: #ddd; overflow: hidden; }
+  .bar > div { height: 100%; transition: width 0.6s ease; }
+  h2 { margin: 4px 0 8px; font-size: 22px; }
+  h3 { margin: 16px 0 8px; font-size: 14px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta { color: #666; font-size: 14px; margin-bottom: 14px; }
+  .divider { border-top: 1px solid #e0e0e0; margin: 18px 0; }
+  .loading { display: flex; align-items: center; gap: 14px; padding: 6px 0; }
+  .spinner { width: 28px; height: 28px; border: 3px solid #e0e0e0; border-top-color: #4a90e2; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .stage { font-size: 15px; color: #555; }
+  .dots::after { display: inline-block; width: 18px; text-align: left; content: ''; animation: dots 1.4s steps(4, end) infinite; }
+  @keyframes dots { 0%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} 100%{content:''} }
+  .fade-in { animation: fade 0.35s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Spend Predictor</h1>
+  <p class="members">Castro, Fiel, Singson, Qiu, ITENT21</p>
+  <input type="file" id="files" accept="image/*" multiple hidden>
+  <button onclick="document.getElementById('files').click()">1. Upload Screenshots</button>
+  <button onclick="run()">2. Process</button>
+  <div class="daterow">
+    <label for="dates">Predict for which dates? (start, end, max one year ahead)</label>
+    <input id="dates" type="text" class="fp" readonly placeholder="Click to pick a start and end date">
+    <div id="dayCount"></div>
+  </div>
+  <div id="out">Upload GCash or bank screenshots to start.</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script>
+const stages = ['Reading screenshots', 'Extracting transactions', 'Computing your actual spend', 'Building projection', 'Comparing to averages'];
+let imgs = [], ticker = null, fp = null;
+const $ = id => document.getElementById(id);
+const fmt = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+function initApp() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yearAhead = new Date(today.getTime() + 365*86400000);
+  const defaultEnd = new Date(today.getTime() + 30*86400000);
+  fp = flatpickr('#dates', {
+    mode: 'range', minDate: today, maxDate: yearAhead, dateFormat: 'Y-m-d',
+    defaultDate: [today, defaultEnd],
+    static: true,
+    inline: false,
+    clickOpens: true,
+    onChange: dates => updateDayCount(dates)
+  });
+  $('dates').addEventListener('click', () => fp.open());
+  updateDayCount(fp.selectedDates);
+  $('files').onchange = async e => {
+    imgs = await Promise.all([...e.target.files].map(f => new Promise(r => {
+      const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f);
+    })));
+    $('out').textContent = imgs.length + ' image(s) loaded. Pick a date range, then press Process.';
+  };
+}
+function updateDayCount(dates) {
+  if (dates && dates.length === 2) {
+    const days = Math.round((dates[1] - dates[0]) / 86400000) + 1;
+    $('dayCount').textContent = days + ' day(s) selected (' + fmt(dates[0]) + ' to ' + fmt(dates[1]) + ')';
+  } else $('dayCount').textContent = 'Pick a start and end date.';
+}
+function showLoading() {
+  let i = 0;
+  $('out').innerHTML = `<div class="loading"><div class="spinner"></div><div class="stage" id="stage">${stages[0]}<span class="dots"></span></div></div>`;
+  const el = $('stage');
+  ticker = setInterval(() => { i = (i + 1) % stages.length; el.firstChild.nodeValue = stages[i]; }, 1700);
+}
+function stopLoading() { if (ticker) { clearInterval(ticker); ticker = null; } }
+async function run() {
+  if (!imgs.length) { $('out').textContent = 'Please upload screenshots first.'; return; }
+  const dates = fp ? fp.selectedDates : [];
+  if (dates.length !== 2) { $('out').textContent = 'Please pick a start and end date.'; return; }
+  const start_date = fmt(dates[0]), end_date = fmt(dates[1]);
+  const days = Math.round((dates[1] - dates[0]) / 86400000) + 1;
+  showLoading();
+  try {
+    const res = await fetch('/process', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: imgs, start_date, end_date, days }) });
+    const d = await res.json();
+    stopLoading();
+    if (d.error) { $('out').textContent = 'Error: ' + d.error; return; }
+    render(d, start_date, end_date);
+  } catch (e) { stopLoading(); $('out').textContent = 'Network error: ' + e.message; }
+}
+function render(d, start, end) {
+  const max = Math.max(d.predicted, d.average_ph, d.average_global) || 1;
+  const peso = n => '₱' + Math.round(n).toLocaleString();
+  const row = (label, value, color) => `<div class="row"><div class="label">${label}</div>
+    <div class="bar"><div style="width:${value/max*100}%;background:${color}"></div></div>
+    <div class="amt">${peso(value)}</div></div>`;
+  const thumbs = imgs.map((src, i) =>
+    `<img src="${src}" alt="screenshot ${i+1}" style="height:90px;border-radius:6px;border:1px solid #ddd;object-fit:cover;flex-shrink:0;">`
+  ).join('');
+  $('out').innerHTML = `<div class="fade-in">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">${thumbs}</div>
+    <h3>What you actually spent</h3>
+    <h2>${peso(d.actual_spent)}</h2>
+    <div class="meta">${d.period_days} day(s), ${d.period_start} to ${d.period_end}, across ${d.transactions} transaction(s), about ${peso(d.daily_rate)}/day</div>
+    <div class="divider"></div>
+    <h3>Projected for ${start} to ${end} (${d.days} days)</h3>
+    <h2>${peso(d.predicted)}</h2>
+    ${row('You', d.predicted, '#e24a4a')}
+    ${row('PH avg', d.average_ph, '#4a90e2')}
+    ${row('Global avg', d.average_global, '#4ae28a')}
+    <p style="margin-top:14px"><strong>Insight.</strong> ${d.insight}</p>
+    <div class="divider"></div>
+    <h3>Sources</h3>
+    <ul style="font-size:13px;color:#555;line-height:1.8;padding-left:18px;margin:0;">
+      <li><a href="https://psa.gov.ph/statistics/income-expenditure/fies" target="_blank" rel="noopener">PSA Family Income and Expenditure Survey 2023</a> — PH household average (₱810/day)</li>
+      <li><a href="https://www.bsp.gov.ph/SitePages/MediaAndResearch/ReportonE-PaymentsMeasurement.aspx" target="_blank" rel="noopener">BSP Report on E-Payments Measurement 2024</a> — Urban Filipino discretionary spending (₱650/day)</li>
+      <li><a href="https://data.worldbank.org/indicator/NE.CON.PRVT.CD?locations=PH" target="_blank" rel="noopener">World Bank Household Final Consumption Expenditure</a> — Global purchasing-power-adjusted average (₱1,200/day)</li>
+    </ul>
+    </div>`;
+}
+initApp();
+</script>
+</body>
+</html>
