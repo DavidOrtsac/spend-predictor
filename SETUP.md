@@ -8,12 +8,6 @@ There are two ways to use this project: the live web version (no install), or ru
 
 Open the deployed URL: **https://spend-predictor-741977575581.asia-southeast1.run.app**
 
-Enter the passcode when prompted:
-
-```
-ITENT21-Submission_Castro,Fiel,Singson,Qiu-APXGP
-```
-
 Upload one or more GCash, Maya, or bank screenshots, click the date input to open the calendar and pick a start and end date (up to one year ahead), then press Process. The OpenAI API key lives only on the server and is never sent to the browser.
 
 ## Option 2, run locally
@@ -32,10 +26,9 @@ Open the new `.env` file in any text editor and paste an OpenAI API key:
 ```
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5.5
-APP_PASSCODE=ITENT21-Submission_Castro,Fiel,Singson,Qiu-APXGP
 ```
 
-Only `OPENAI_API_KEY` is required. The other two have safe defaults if omitted.
+Only `OPENAI_API_KEY` is required. `OPENAI_MODEL` has a safe default if omitted.
 
 You can get an API key at https://platform.openai.com/api-keys
 
@@ -45,7 +38,7 @@ Then start the server:
 npm start
 ```
 
-Open `http://localhost:3000` in any modern browser. Enter the passcode above. Upload screenshots. Done.
+Open `http://localhost:3000` in any modern browser. Upload screenshots. Done.
 
 ## If GPT-5.5 is not available on your account
 
@@ -71,8 +64,8 @@ then restart with `npm start`.
 
 | File | What it does |
 |---|---|
-| `index.html` | The webpage shown in the browser. Contains the passcode gate, upload button, slider, process button, and result rendering. |
-| `server.js` | The small Node backend. Validates the passcode, attaches images to a prompt, calls OpenAI, returns JSON. |
+| `index.html` | The webpage shown in the browser. Contains the upload button, date range picker, process button, and result rendering. |
+| `server.js` | The small Node backend. Attaches images to a prompt, calls OpenAI, returns JSON. |
 | `package.json` | Lists the three dependencies (express, openai, dotenv). |
 | `Dockerfile` | Used for cloud deployments. Not needed for local use. |
 | `.env.example` | Template showing which environment variables to set. Copy to `.env` and fill in. |
@@ -83,7 +76,6 @@ There is no `.env` file in this zip on purpose. The OpenAI API key never ships w
 
 ## Common issues
 
-- **"Locked" error**: refresh the page and enter the passcode.
 - **"model not found"**: change `OPENAI_MODEL` in `.env` (see fallback table above).
 - **Page doesn't load locally**: confirm `npm install` finished without errors and that you ran `npm start` from inside the `spend-predictor` folder.
 - **No transactions detected**: the screenshots may be too blurry, cropped, or only show non-spending entries (cash-in, salary, transfers). Try clearer screenshots that include outgoing transactions.
