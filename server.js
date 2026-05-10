@@ -29,11 +29,10 @@ This is the user's real spend in the captured window. It is the most important n
 
 STEP 3, PROJECT: Project total spending for the date range from {START_DATE} through {END_DATE} (a span of {DAYS} days, inclusive). Compute the projection as: daily_rate multiplied by {DAYS}. If you have very few data points (1 or 2 transactions, or a captured period shorter than 3 days), state in the insight that the projection is rough because the sample is small.
 
-STEP 4, BENCHMARKS (pre-researched, scale to {DAYS} days):
-  Filipino household average personal expenditure (PSA Family Income and Expenditure Survey 2023, scaled per person): roughly ₱810 per day.
-  Average urban Filipino discretionary spending (BSP consumer surveys, e-wallet activity reports 2024): roughly ₱650 per day.
-  Global personal daily spending, purchasing power adjusted (World Bank household consumption data): roughly ₱1,200 per day equivalent.
-  Use the urban Filipino figure of ₱650/day as average_ph. Use ₱1,200/day as average_global. Scale both by {DAYS}.
+STEP 4, BENCHMARKS (derived from official data, scale to {DAYS} days):
+  PH per person daily spending: ₱177 per day. Derivation: PSA Family Income and Expenditure Survey 2023, average annual family expenditure ₱258,050, divided by 365 days, divided by an average household size of about 4 persons.
+  Global per person daily spending (purchasing power parity, PHP-equivalent): ₱695 per day. Derivation: World Bank 2023 households and NPISHs final consumption expenditure (PPP), world total ~$99.58 trillion divided by world population ~8.05 billion equals ~$33.89/day PPP, expressed in PHP-equivalent purchasing power.
+  Use ₱177/day as average_ph. Use ₱695/day as average_global. Scale both by {DAYS}.
 
 STEP 5, INSIGHT: Write ONE sentence. Mention the chosen window ({START_DATE} to {END_DATE}), reference the user's actual daily rate from Step 2, compare the projected total to the PH and global benchmarks with a specific percentage above or below, and add one practical non-judgmental tip. No emojis.
 
