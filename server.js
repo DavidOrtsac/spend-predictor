@@ -46,8 +46,8 @@ OUTPUT: Return ONLY this JSON object, no markdown, no commentary, no extra keys:
   "daily_rate": <integer PHP per day, computed in Step 2>,
   "days": {DAYS},
   "predicted": <integer PHP, total predicted spend over the {DAYS}-day window>,
-  "average_ph": <integer PHP, 650 multiplied by {DAYS}>,
-  "average_global": <integer PHP, 1200 multiplied by {DAYS}>,
+  "average_ph": <integer PHP, 177 multiplied by {DAYS}>,
+  "average_global": <integer PHP, 695 multiplied by {DAYS}>,
   "insight": "<one sentence as described in Step 5>"
 }`;
 
